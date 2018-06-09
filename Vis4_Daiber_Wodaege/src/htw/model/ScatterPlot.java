@@ -1,12 +1,7 @@
 package htw.model;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JToolBar;
+import javax.swing.*;
+import javax.swing.Renderer;
 
 import prefuse.Constants;
 import prefuse.Display;
@@ -15,201 +10,234 @@ import prefuse.action.ActionList;
 import prefuse.action.RepaintAction;
 import prefuse.action.assignment.ColorAction;
 import prefuse.action.assignment.DataShapeAction;
+import prefuse.action.layout.AxisLabelLayout;
 import prefuse.action.layout.AxisLayout;
+import prefuse.controls.PanControl;
 import prefuse.controls.ToolTipControl;
+import prefuse.controls.ZoomControl;
+import prefuse.controls.ZoomToFitControl;
 import prefuse.data.Table;
 import prefuse.data.io.DelimitedTextTableReader;
-import prefuse.render.DefaultRendererFactory;
-import prefuse.render.ShapeRenderer;
+import prefuse.data.query.NumberRangeModel;
+import prefuse.render.*;
 import prefuse.util.ColorLib;
 import prefuse.visual.VisualItem;
+import prefuse.visual.VisualTable;
 import prefuse.visual.expression.VisiblePredicate;
+import prefuse.visual.sort.ItemSorter;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.text.NumberFormat;
+import java.util.Date;
+import java.util.GregorianCalendar;
 
 public class ScatterPlot extends Display {
 
-    private static final String group = "data";
+    private Visualization vis = new Visualization();
+    private Display display;
 
-    private ShapeRenderer m_shapeR = new ShapeRenderer(2);
+    private AxisLayout x_axis;
+    private AxisLayout y_axis;
 
-    public ScatterPlot(Table t, String xfield, String yfield) {
-        this(t, xfield, yfield, null);
+    private AxisLabelLayout x_labels;
+    private AxisLabelLayout y_labels;
+
+    public ScatterPlot() {
+
+        display = new Display(vis);
+
+
+        // create actions to process the visual data
+        x_axis = new AxisLayout("data", "NBZ", Constants.X_AXIS, VisiblePredicate.TRUE);
+        y_axis = new AxisLayout("data", "BMI", Constants.Y_AXIS, VisiblePredicate.TRUE);
+
+        x_labels = new AxisLabelLayout("xlab", x_axis);
+        y_labels = new AxisLabelLayout("ylab", y_axis);
     }
 
-    public ScatterPlot(Table t, String xfield, String yfield, String sfield) {
-        super(new Visualization());
+    public void addData()
+    {
 
-        // --------------------------------------------------------------------
-        // STEP 1: setup the visualized data
+    }
 
-        m_vis.addTable(group, t);
+    public JComponent generateScatterplot()
+    {
+        initVisualization();
+        initDisplay();
 
-        DefaultRendererFactory rf = new DefaultRendererFactory(m_shapeR);
-        m_vis.setRendererFactory(rf);
+        Table table = generateTable();
+        final JComponent newDisplay = createVisualization(table);
 
-        // --------------------------------------------------------------------
-        // STEP 2: create actions to process the visual data
+        return newDisplay;
+    }
 
-        // set up the actions
-        AxisLayout x_axis = new AxisLayout(group, xfield,
-                Constants.X_AXIS, VisiblePredicate.TRUE);
-        m_vis.putAction("x", x_axis);
+    private void initVisualization()
+    {
+        ColorAction color = new ColorAction("data", VisualItem.STROKECOLOR,
+                ColorLib.rgb(100, 100, 255));
 
-        AxisLayout y_axis = new AxisLayout(group, yfield,
-                Constants.Y_AXIS, VisiblePredicate.TRUE);
-        m_vis.putAction("y", y_axis);
-
-        ColorAction color = new ColorAction(group,
-                VisualItem.STROKECOLOR, ColorLib.rgb(100,100,255));
-        m_vis.putAction("color", color);
-
-        DataShapeAction shape = new DataShapeAction(group, sfield);
-        m_vis.putAction("shape", shape);
+        int[] palette = { Constants.SHAPE_STAR, Constants.SHAPE_ELLIPSE };
+        DataShapeAction shape = new DataShapeAction("data", "Insult", palette);
 
         ActionList draw = new ActionList();
         draw.add(x_axis);
         draw.add(y_axis);
-        if ( sfield != null )
-            draw.add(shape);
+        draw.add(x_labels);
+        draw.add(y_labels);
         draw.add(color);
+        draw.add(shape);
         draw.add(new RepaintAction());
-        m_vis.putAction("draw", draw);
+        vis.putAction("draw", draw);
 
-        // --------------------------------------------------------------------
-        // STEP 3: set up a display and ui components to show the visualization
+        ActionList update = new ActionList();
+        update.add(x_axis);
+        update.add(y_axis);
+        update.add(x_labels);
+        update.add(y_labels);
+        update.add(new RepaintAction());
+        vis.putAction("update", update);
 
-        setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-        setSize(700,450);
-        setHighQuality(true);
+        // set up renderers for the visual data
+        vis.setRendererFactory(new RendererFactory() {
+            AbstractShapeRenderer sr = new ShapeRenderer(7);
+            prefuse.render.Renderer arY = new AxisRenderer(Constants.FAR_LEFT,
+                    Constants.CENTER);
+            prefuse.render.Renderer arX = new AxisRenderer(Constants.CENTER,
+                    Constants.FAR_BOTTOM);
 
-        ToolTipControl ttc = new ToolTipControl(new String[] {xfield,yfield});
-        addControlListener(ttc);
-
-
-        // --------------------------------------------------------------------
-        // STEP 4: launching the visualization
-
-        m_vis.run("draw");
-
+            public prefuse.render.Renderer getRenderer(VisualItem item) {
+                return item.isInGroup("ylab") ? arY
+                        : item.isInGroup("xlab") ? arX : sr;
+            }
+        });
     }
 
-    public int getPointSize() {
-        return m_shapeR.getBaseSize();
-    }
-
-    public void setPointSize(int size) {
-        m_shapeR.setBaseSize(size);
-        repaint();
-    }
-
-    // ------------------------------------------------------------------------
-
-    public static void main(String[] argv) {
-        String data = "/fisher.iris.txt";
-        String xfield = "SepalLength";
-        String yfield = "PetalLength";
-        String sfield = "Species";
-        if ( argv.length >= 3 ) {
-            data = argv[0];
-            xfield = argv[1];
-            yfield = argv[2];
-            sfield = ( argv.length > 3 ? argv[3] : null );
-        }
-
-        final ScatterPlot sp = demo(data, xfield, yfield, sfield);
-        JToolBar toolbar = getEncodingToolbar(sp, xfield, yfield, sfield);
-
-
-
-        JFrame frame = new JFrame("p r e f u s e  |  s c a t t e r");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().add(toolbar, BorderLayout.NORTH);
-        frame.getContentPane().add(sp, BorderLayout.CENTER);
-        frame.pack();
-        frame.setVisible(true);
-    }
-
-    public static ScatterPlot demo(String data, String xfield, String yfield) {
-        return demo(data, xfield, yfield, null);
-    }
-
-    public static ScatterPlot demo(String data, String xfield,
-                                   String yfield, String sfield)
+    private void initDisplay()
     {
-        Table table = null;
-        try {
-            table = new DelimitedTextTableReader().readTable(data);
-        } catch ( Exception e ) {
-            e.printStackTrace();
-            return null;
-        }
-        ScatterPlot scatter = new ScatterPlot(table, xfield, yfield, sfield);
-        scatter.setPointSize(10);
-        return scatter;
+        // set up a display and controls
+        display.setHighQuality(true);
+        display.setSize(700, 450);
+
+        display.setBorder(BorderFactory.createEmptyBorder(15, 30, 15, 30));
+
+        // show data items in front of axis labels
+        display.setItemSorter(new ItemSorter() {
+            public int score(VisualItem item) {
+                int score = super.score(item);
+                if (item.isInGroup("data"))
+                    score++;
+                return score;
+            }
+        });
+
+        // react on window resize
+        display.addComponentListener(new ComponentAdapter() {
+            public void componentResized(ComponentEvent e) {
+                vis.run("update");
+            }
+        });
+
+        ToolTipControl ttc = new ToolTipControl("label");
+        display.addControlListener(ttc);
+
+        display.addControlListener(new PanControl());
+        display.addControlListener(new ZoomControl());
+        display.addControlListener(new ZoomToFitControl());
     }
 
-    private static JToolBar getEncodingToolbar(final ScatterPlot sp,
-                                               final String xfield, final String yfield, final String sfield)
+    private Table generateTable() {
+        Table table = new Table();
+
+        GregorianCalendar cal = new GregorianCalendar();
+        /*
+        table.addColumn("Number", Integer.class);
+        table.addColumn("Car", String.class);
+        table.addColumn("Manufacturer", String.class);
+        table.addColumn("Year", String.class);
+        table.addColumn("Origin", String.class);
+
+        table.addRows(2);
+
+        table.set(0, 0, 1);
+        table.set(0, 1, "Chetta");
+        table.set(0, 2, "Opel");
+        table.set(0, 3, "1923");
+        table.set(0, 4, "Germany");
+
+        table.set(1, 0, 2);
+        table.set(1, 1, "Amina");
+        table.set(1, 2, "Yusu");
+        table.set(1, 3, "1922");
+        table.set(1, 4, "Germany");
+    */
+
+        // set up table schema
+        table.addColumn("Date", Date.class);
+        table.addColumn("BMI", double.class);
+        table.addColumn("NBZ", int.class);
+        table.addColumn("Insult", String.class);
+
+        table.addRows(3);
+
+        cal.set(2007, 11, 23);
+        table.set(0, 0, cal.getTime());
+        table.set(0, 1, 21.0);
+        table.set(0, 2, 236);
+        table.set(0, 3, "F");
+
+        cal.set(2008, 6, 22);
+        table.set(1, 0, cal.getTime());
+        table.set(1, 1, 35.8);
+        table.set(1, 2, 400);
+        table.set(1, 3, "F");
+
+        cal.set(2009, 3, 8);
+        table.set(2, 0, cal.getTime());
+        table.set(2, 1, 28.8);
+        table.set(2, 2, 309);
+        table.set(2, 3, "T");
+
+
+        return table;
+    }
+
+    private void setAxisValues()
     {
-        int spacing = 10;
 
-        // create list of column names
-        Table t = (Table)sp.getVisualization().getSourceData(group);
-        String[] colnames = new String[t.getColumnCount()];
-        for ( int i=0; i<colnames.length; ++i )
-            colnames[i] = t.getColumnName(i);
+    }
 
-        // create toolbar that allows visual mappings to be changed
-        JToolBar toolbar = new JToolBar();
-        toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.X_AXIS));
-        toolbar.add(Box.createHorizontalStrut(spacing));
+    private JComponent createVisualization(Table data) {
 
-        final JComboBox xcb = new JComboBox(colnames);
-        xcb.setSelectedItem(xfield);
-        xcb.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                Visualization vis = sp.getVisualization();
-                AxisLayout xaxis = (AxisLayout)vis.getAction("x");
-                xaxis.setDataField((String)xcb.getSelectedItem());
-                vis.run("draw");
-            }
-        });
-        toolbar.add(new JLabel("X: "));
-        toolbar.add(xcb);
-        toolbar.add(Box.createHorizontalStrut(2*spacing));
 
-        final JComboBox ycb = new JComboBox(colnames);
-        ycb.setSelectedItem(yfield);
-        ycb.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                Visualization vis = sp.getVisualization();
-                AxisLayout yaxis = (AxisLayout)vis.getAction("y");
-                yaxis.setDataField((String)ycb.getSelectedItem());
-                vis.run("draw");
-            }
-        });
-        toolbar.add(new JLabel("Y: "));
-        toolbar.add(ycb);
-        toolbar.add(Box.createHorizontalStrut(2*spacing));
+        // setup the visualized data
+        VisualTable vt = vis.addTable("data", data);
 
-        final JComboBox scb = new JComboBox(colnames);
-        scb.setSelectedItem(sfield);
-        scb.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                Visualization vis = sp.getVisualization();
-                DataShapeAction s = (DataShapeAction)vis.getAction("shape");
-                s.setDataField((String)scb.getSelectedItem());
-                vis.run("draw");
-            }
-        });
-        toolbar.add(new JLabel("Shape: "));
-        toolbar.add(scb);
-        toolbar.add(Box.createHorizontalStrut(spacing));
-        toolbar.add(Box.createHorizontalGlue());
+        // add a new column containing a label string
+        vt.addColumn("label",
+                "CONCAT('NBZ: ', [NBZ], '; BMI: ', FORMAT([BMI],1))");
 
-        return toolbar;
+
+        // define the visible range for the y axis
+        y_axis.setRangeModel(new NumberRangeModel(1, 40, 1, 40));
+
+        // use square root scale for y axis
+        y_axis.setScale(Constants.LINEAR_SCALE);
+        y_labels.setScale(Constants.LINEAR_SCALE);
+
+        // use a special format for y axis labels
+        NumberFormat nf = NumberFormat.getNumberInstance();
+        nf.setMaximumFractionDigits(1);
+        nf.setMinimumFractionDigits(1);
+        y_labels.setNumberFormat(nf);
+
+
+        // launching the visualization
+        vis.run("draw");
+
+        return display;
     }
 }

@@ -49,7 +49,7 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception{
         BorderPane root = FXMLLoader.load(getClass().getResource("/htw/controller/sample.fxml"));
         primaryStage.setTitle("Vis1 - Daiber Wodaege");
-
+/*
         Table table = generateTable();
         final JComponent display = createVisualization(table);
 
@@ -57,6 +57,7 @@ public class Main extends Application {
         node.setContent(display);
 
         root.setCenter(node);
+        */
         primaryStage.setScene(new Scene(root, 1800, 900));
         primaryStage.sizeToScene();
         primaryStage.show();

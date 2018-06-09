@@ -10,12 +10,11 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane maxHeight="800.0" maxWidth="1200.0" xmlns="http://javafx.com/javafx/9.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="htw.controller.Controller">
+<BorderPane fx:id="borderPane" maxHeight="800.0" maxWidth="1200.0" xmlns="http://javafx.com/javafx/9.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="htw.controller.Controller">
 
 
-        <center>
-            <Canvas fx:id="canvas" height="500.0" width="500.0" />
-
+        <center >
+            <VBox fx:id="box" prefWidth="500.0" prefHeight="700" alignment="CENTER"> </VBox>
         </center>
    <right>
       <VBox prefHeight="200.0" prefWidth="510.0" BorderPane.alignment="CENTER">

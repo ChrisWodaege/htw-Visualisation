@@ -6,8 +6,12 @@ import htw.model.ScatterPlot;
 import htw.util.FileParser;
 
 import javafx.collections.ListChangeListener;
+import javafx.embed.swing.SwingNode;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,8 +20,38 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.util.Callback;
+import prefuse.Constants;
+import prefuse.Display;
+import prefuse.Visualization;
+import prefuse.action.ActionList;
+import prefuse.action.RepaintAction;
+import prefuse.action.assignment.ColorAction;
+import prefuse.action.assignment.DataShapeAction;
+import prefuse.action.layout.AxisLabelLayout;
+import prefuse.action.layout.AxisLayout;
+import prefuse.controls.PanControl;
+import prefuse.controls.ToolTipControl;
+import prefuse.controls.ZoomControl;
+import prefuse.controls.ZoomToFitControl;
 import prefuse.data.Table;
+import prefuse.data.query.NumberRangeModel;
+import prefuse.render.AbstractShapeRenderer;
+import prefuse.render.AxisRenderer;
+import prefuse.render.Renderer;
+import prefuse.render.RendererFactory;
+import prefuse.render.ShapeRenderer;
+import prefuse.util.ColorLib;
+import prefuse.visual.VisualItem;
+import prefuse.visual.VisualTable;
+import prefuse.visual.expression.VisiblePredicate;
+import prefuse.visual.sort.ItemSorter;
 
+import javax.swing.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.text.NumberFormat;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 public class Controller {
@@ -47,9 +81,11 @@ public class Controller {
 	double[] currentCoorPoints;
 
 	@FXML
-	private Canvas canvas;
+	private BorderPane borderPane;
 
-	private GraphicsContext gc;
+	@FXML
+    private VBox box;
+
 
 	private int canvasHeight = 600;
 	private int canvasWidth = 800;
@@ -98,19 +134,30 @@ public class Controller {
 
 	private int MAXITEMS = 4;
 
+
+
+	private void initScatterplot()
+    {
+        ScatterPlot sp = new ScatterPlot();
+        final JComponent display = sp.generateScatterplot();
+
+        SwingNode node = new SwingNode();
+        node.setContent(display);
+
+        box.getChildren().add(node);
+    }
+
 	@FXML
 	public void initialize() {
 		dataSetChoose.setItems(FXCollections.observableArrayList(Dataset.values()));
-		canvas.setHeight(canvasHeight);
-		canvas.setWidth(canvasWidth);
 
-		gc = canvas.getGraphicsContext2D();
 		fp = new FileParser();
 
 		buttonUp.setDisable(true);
 
 		fillTable();
 
+		initScatterplot();
 		tableChoosenData.setRowFactory(tv -> {
 
             TableRow<Car> row = new TableRow<>();
