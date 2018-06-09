@@ -1,13 +1,10 @@
 package htw.controller;
 
-
 import htw.model.Car;
 import htw.model.DataPoint;
-import htw.model.Feature;
-import htw.util.CoordianteSystem;
+import htw.model.ScatterPlot;
 import htw.util.FileParser;
 
-import htw.util.StyleChangingRowFactory;
 import javafx.collections.ListChangeListener;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
@@ -18,22 +15,13 @@ import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.paint.Paint;
-import javafx.scene.shape.*;
-import javafx.scene.shape.Polygon;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import javafx.util.Callback;
+import prefuse.data.Table;
 
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 public class Controller {
 
-	Car car = new Car();
 	// RED, GREEN, BLUE, YELLOW, TURKIS, PINK, ORANGE
 	// private final int[] colors = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00,
 	// 0xff00ffff, 0xffff00ff, 0xffffa500};
@@ -108,7 +96,6 @@ public class Controller {
 
 	private FileParser fp;
 
-	private CoordianteSystem coordianteSystem;
 	private int MAXITEMS = 4;
 
 	@FXML
@@ -119,51 +106,10 @@ public class Controller {
 
 		gc = canvas.getGraphicsContext2D();
 		fp = new FileParser();
-		
 
 		buttonUp.setDisable(true);
 
-		coordianteSystem = new CoordianteSystem(gc, canvasWidth / 2, canvasHeight / 2, 290, Color.BLACK);
-		coordianteSystem.addAxis(Feature.ACCELERATION, 25, 5);
-		coordianteSystem.addAxis(Feature.CYLINDERS, 10, 5);
-		coordianteSystem.addAxis(Feature.DISPLACEMENT, 7500, 10);
-		coordianteSystem.addAxis(Feature.WEIGHT, 2500, 5);
-		coordianteSystem.addAxis(Feature.PS, 250, 5);
-		coordianteSystem.addAxis(Feature.MPG, 30, 4);
-
-		coordianteSystem.draw();
-		
-		
-
 		fillTable();
-
-/*
-				tableChoosenDataList.addListener(new ListChangeListener<Car>() {
-
-					@Override
-					public void onChanged(Change<? extends Car> change) {
-
-						String styleclass = "rowStyle_";
-						styleclass += car.getColor().toString();
-
-						System.out.println("bla");
-
-
-						if (tableChoosenDataList.contains(row.getIndex())) {
-
-							if (! row.getStyleClass().contains(styleclass)) {
-								row.getStyleClass().add(styleclass);
-							}
-						} else {
-							row.getStyleClass().removeAll(Collections.singleton((Object)styleclass));
-						}
-					}
-				});
-				return row;
-			}
-		});
-		*/
-
 
 		tableChoosenData.setRowFactory(tv -> {
 
@@ -178,7 +124,6 @@ public class Controller {
             return row ;
 
 		});
-
 
 		Alert alert = new Alert(Alert.AlertType.INFORMATION);
 		alert.setTitle("Bedienungshinweis");
@@ -263,7 +208,6 @@ public class Controller {
 					car.getCylinders(), car.getDisplacement(), car.getPS(), car.getWeight(), car.getAcceleration(),
 					car.getYear(), car.getOrigin(), colors[cellCounter]));
 
-			//setCellTextColor(car);
 
 			fp.tableDatasetList.remove(getRowId());
 		}
@@ -271,79 +215,11 @@ public class Controller {
 		if (cellCounter >= MAXITEMS)
 			buttonDown.setDisable(true);
 
-
-		addCarToCoordSys(car);
-
 		cellCounter++;
 
 		if(cellCounter > 0)
 			buttonUp.setDisable(false);
 	}
-
-	private void setCellTextColor(Car car) {
-
-		tableChoosenData.setRowFactory(new Callback<TableView<Car>, TableRow<Car>>() {
-			@Override
-			public TableRow<Car> call(TableView<Car> tableView) {
-				final TableRow<Car> row = new TableRow<Car>() {
-					@Override
-					protected void updateItem(Car person, boolean empty){
-						super.updateItem(person, empty);
-
-						System.out.println("update item");
-
-
-						getStyleClass().add("highlightedRow");
-
-						/*
-						if (tableChoosenDataList.contains(getIndex())) {
-
-							System.out.println("1 contains index");
-
-							if (! getStyleClass().contains("highlightedRow")) {
-
-								System.out.println("1 add styleclass");
-
-								getStyleClass().add("highlightedRow");
-							}
-						} else {
-							getStyleClass().removeAll(Collections.singleton("highlightedRow"));
-						}
-						*/
-					}
-				};
-				tableChoosenDataList.addListener(new ListChangeListener<Car>() {
-					@Override
-					public void onChanged(Change<? extends Car> change) {
-
-
-						System.out.println("onchanged");
-
-
-						row.getStyleClass().add("highlightedRow");
-
-						/*
-						if (tableChoosenDataList.contains(row.getIndex())) {
-
-							System.out.println("contains index");
-
-							if (! row.getStyleClass().contains("highlightedRow")) {
-
-								System.out.println("add styleclass");
-
-
-								row.getStyleClass().add("highlightedRow");
-							}
-						} else {
-							row.getStyleClass().removeAll(Collections.singleton("highlightedRow"));
-						}
-						*/
-					}
-				});
-				return row;
-			}
-		});
-    }
 
 	@FXML
 	public void buttonUpClick() {
@@ -357,13 +233,11 @@ public class Controller {
 					car.getYear(), car.getOrigin(), colors[cellCounter]));
 			tableChoosenDataList.remove(getRowId());
 
-			//coloringCells(cellCounter);
+
 		}
 
 		if (cellCounter < MAXITEMS)
 			buttonDown.setDisable(false);
-
-		removeCarFromCoordSys(car);
 
 		cellCounter--;
 
@@ -371,49 +245,6 @@ public class Controller {
 			buttonUp.setDisable(true);
 	}
 
-	private void addCarToCoordSys(Car car) {
-
-		coordianteSystem.addDataPointToAxis(Feature.WEIGHT, car.getNumber(), car.getWeight(), car.getColor());
-		coordianteSystem.addDataPointToAxis(Feature.ACCELERATION, car.getNumber(), car.getAcceleration(),
-				car.getColor());
-		coordianteSystem.addDataPointToAxis(Feature.DISPLACEMENT, car.getNumber(), car.getDisplacement(),
-				car.getColor());
-		coordianteSystem.addDataPointToAxis(Feature.PS, car.getNumber(), car.getPS(), car.getColor());
-		coordianteSystem.addDataPointToAxis(Feature.CYLINDERS, car.getNumber(), car.getCylinders(),
-				car.getColor());
-		coordianteSystem.addDataPointToAxis(Feature.MPG, car.getNumber(), car.getmPG(), car.getColor());
-
-		coordianteSystem.draw();
-
-	}
-
-	private void removeCarFromCoordSys(Car car) {
-		coordianteSystem.removeDataPointFromAxis(Feature.WEIGHT, car.getNumber());
-		coordianteSystem.removeDataPointFromAxis(Feature.ACCELERATION, car.getNumber());
-		coordianteSystem.removeDataPointFromAxis(Feature.DISPLACEMENT, car.getNumber());
-		coordianteSystem.removeDataPointFromAxis(Feature.PS, car.getNumber());
-		coordianteSystem.removeDataPointFromAxis(Feature.CYLINDERS, car.getNumber());
-		coordianteSystem.removeDataPointFromAxis(Feature.MPG, car.getNumber());
-
-		coordianteSystem.draw();
-
-		
-
-	}
-
-	
-	
-
-    public double[] defineMidPoints(double mP1x, double mP1y, double mP2x, double mP2y) {
-
-        double[] mP = new double[2];
-
-        mP[0] = (mP1x + mP2x) / 2;
-        mP[1] = (mP1y + mP2y) / 2;
-
-        return mP;
-
-    }
 
 	private void showCarDetails(Car car){
 		Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -432,22 +263,5 @@ public class Controller {
 			}
 		});
 	}
-
-	@FXML
-	public void coloringCells(int cellCounter) {
-		// for (int i = 0; i < cellCounter; i++) {
-		// tableChoosenData.setRowFactory(i);
-		// System.out.println(i);
-		// TableRow<Car> row = new TableRow();
-		// row.setStyle("-fx-background-color:lightcoral");
-		// }
-	}
-
-	/*
-	 * 
-	 * hier ist eine liste mit autoobjekten die sich in der unteren Liste befinden,
-	 * die �ber werte kannst du �ber die getter abrufen
-	 * 
-	 */
 
 }
