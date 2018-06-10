@@ -1,8 +1,6 @@
 package htw.controller;
 
-import htw.model.Car;
-import htw.model.DataPoint;
-import htw.model.ScatterPlot;
+import htw.model.*;
 import htw.util.FileParser;
 
 import javafx.collections.ListChangeListener;
@@ -50,6 +48,7 @@ import javax.swing.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -63,37 +62,20 @@ public class Controller {
 			Color.ORANGE };
 	private int cellCounter = 0;
 
-	public enum Dataset {
-		FIRST("Alter Datensatz"), SECOND("Neuer Datensatz");
-
-		private final String name;
-
-		private Dataset(String s) {
-			name = s;
-		}
-
-		public String toString() {
-			return this.name;
-		}
-	};
-	
-	private List<DataPoint> coordinatePoints;
-	double[] currentCoorPoints;
-
-	@FXML
-	private BorderPane borderPane;
 
 	@FXML
     private VBox box;
 
-
-	private int canvasHeight = 600;
-	private int canvasWidth = 800;
-
-	private ObservableList<Car> tableChoosenDataList = FXCollections.observableArrayList();
-
 	@FXML
-	ComboBox<Dataset> dataSetChoose = new ComboBox();
+	private ComboBox<Dataset> dataSetChoose = new ComboBox();
+
+
+    @FXML
+    private ComboBox<Feature> featureX = new ComboBox();
+
+    @FXML
+    private ComboBox<Feature> featureY = new ComboBox();
+
 	
 	// upper table
 	@FXML
@@ -115,8 +97,10 @@ public class Controller {
 	@FXML
 	private Button buttonDown = new Button();
 
-	
-	// lower table
+	@FXML
+    private CheckBox compareAll;
+
+    // lower table
 	@FXML
 	private TableView tableChoosenData = new TableView();
 	@FXML
@@ -130,26 +114,21 @@ public class Controller {
 	@FXML
 	private TableColumn<Car, String> columnChoosenDataLand;
 
+    private List<Car> tmpChoosenCars;
+    private ObservableList<Car> tableChoosenDataList = FXCollections.observableArrayList();
+
 	private FileParser fp;
+	private ScatterPlot sp;
 
-	private int MAXITEMS = 4;
-
-
-
-	private void initScatterplot()
-    {
-        ScatterPlot sp = new ScatterPlot();
-        final JComponent display = sp.generateScatterplot();
-
-        SwingNode node = new SwingNode();
-        node.setContent(display);
-
-        box.getChildren().add(node);
-    }
+	private int MAXITEMS = 100;
 
 	@FXML
 	public void initialize() {
+	    tmpChoosenCars = new ArrayList<>();
+
 		dataSetChoose.setItems(FXCollections.observableArrayList(Dataset.values()));
+		featureX.setItems(FXCollections.observableArrayList(Feature.values()));
+        featureY.setItems(FXCollections.observableArrayList(Feature.values()));
 
 		fp = new FileParser();
 
@@ -157,7 +136,6 @@ public class Controller {
 
 		fillTable();
 
-		initScatterplot();
 		tableChoosenData.setRowFactory(tv -> {
 
             TableRow<Car> row = new TableRow<>();
@@ -183,9 +161,41 @@ public class Controller {
 		});
 	}
 
+
+	private void generateScatterplot(List<Car> cars)
+    {
+        ScatterPlot sp = new ScatterPlot();
+        sp.setData(cars);
+
+        final JComponent display = sp.generateScatterplot();
+
+        SwingNode node = new SwingNode();
+        node.setContent(display);
+
+        box.getChildren().clear();
+        box.getChildren().add(node);
+    }
+    @FXML
+    public void compareDataset()
+    {
+        System.out.println("tmpCarssize: "+tmpChoosenCars.size());
+        if(compareAll.isSelected())
+        {
+            tmpChoosenCars.clear();
+            tmpChoosenCars.addAll(tableChoosenDataList);
+
+            generateScatterplot(tableDataset.getItems());
+        }
+        else {
+            if(!tmpChoosenCars.isEmpty())
+                generateScatterplot(tmpChoosenCars);
+            else
+                generateScatterplot(new ArrayList<>());
+        }
+    }
 	@FXML
 	public void chooseDataset() {
-		
+
 		switch (dataSetChoose.getValue()) {
 		case FIRST:
 			clearTables();
@@ -198,6 +208,8 @@ public class Controller {
 		default:
 			break;
 		}
+
+
 	}
 	
 	private void clearTables() {
@@ -225,6 +237,7 @@ public class Controller {
 		columnChoosenDataLand.setCellValueFactory(new PropertyValueFactory<Car, String>("origin"));
 
 		tableChoosenData.setItems(tableChoosenDataList);
+
 	}
 	
 
@@ -241,6 +254,21 @@ public class Controller {
 	}
 
 	@FXML
+    public void featureXChange()
+    {
+        System.out.println("feature x");
+        // TODO check if both set
+
+    }
+
+    @FXML
+    public void featureYChange()
+    {
+
+        System.out.println("feature y");
+    }
+
+	@FXML
 	public void buttonDownClick() {
 
 		Car car = null;
@@ -248,15 +276,17 @@ public class Controller {
 
 		if (tableDataset.getSelectionModel().getSelectedItem() != null) {
 			car = fp.tableDatasetList.get(getRowId());
-			car.setColor(colors[cellCounter]);
+			//car.setColor(colors[cellCounter]);
 			//fp.tableDatasetList.add(car);
 
 			tableChoosenDataList.add(new Car(car.getNumber(), car.getCar(), car.getManufacturer(), car.getmPG(),
 					car.getCylinders(), car.getDisplacement(), car.getPS(), car.getWeight(), car.getAcceleration(),
-					car.getYear(), car.getOrigin(), colors[cellCounter]));
+					car.getYear(), car.getOrigin(), null));
 
 
 			fp.tableDatasetList.remove(getRowId());
+
+			generateScatterplot(tableChoosenDataList);
 		}
 
 		if (cellCounter >= MAXITEMS)
@@ -277,9 +307,13 @@ public class Controller {
 			car = tableChoosenDataList.get(getRowId());
 			fp.tableDatasetList.add(new Car(car.getNumber(), car.getCar(), car.getManufacturer(), car.getmPG(),
 					car.getCylinders(), car.getDisplacement(), car.getPS(), car.getWeight(), car.getAcceleration(),
-					car.getYear(), car.getOrigin(), colors[cellCounter]));
+					car.getYear(), car.getOrigin(), null));
 			tableChoosenDataList.remove(getRowId());
 
+			if(!tableChoosenDataList.isEmpty())
+                generateScatterplot(tableChoosenDataList);
+			else
+                generateScatterplot(new ArrayList<>());
 
 		}
 

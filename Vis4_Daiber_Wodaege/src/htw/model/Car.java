@@ -38,7 +38,21 @@ public class Car {
 	}
 	
 	public Car() {
-		
+		this.number = 0;
+		this.car = "";
+		this.manufacturer = "";
+
+		this.mpg = 0;
+
+		this.cylinders = 0;
+		this.displacement = 0;
+		this.horsepower = 0;
+		this.weight = 0;
+		this.acceleration = 0;
+		this.year = "";
+		this.origin = "";
+
+		this.color = null;
 	}
 	
 	// getter / setter

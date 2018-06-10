@@ -10,6 +10,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.CheckBox?>
 <BorderPane fx:id="borderPane" maxHeight="800.0" maxWidth="1200.0" xmlns="http://javafx.com/javafx/9.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="htw.controller.Controller">
 
 
@@ -30,21 +32,44 @@
             </TableView>
             <HBox prefHeight="100.0" prefWidth="500.0">
                <children>
-                  <ComboBox fx:id="dataSetChoose" onAction="#chooseDataset" prefHeight="26.0" prefWidth="198.0" promptText="Datensatz Auswahl">
+                  <ComboBox fx:id="dataSetChoose" onAction="#chooseDataset" prefHeight="26.0" prefWidth="180.0" promptText="Datensatz Auswahl">
                      <HBox.margin>
-                        <Insets bottom="30.0" left="30.0" top="30.0" />
+                        <Insets bottom="30.0" left="30.0" top="30.0" right="10" />
                      </HBox.margin>
                   </ComboBox>
+
+                 <VBox>
+                    <Button fx:id="buttonUp" mnemonicParsing="false" onAction="#buttonUpClick" prefWidth="50.0" text="^">
+                       <HBox.margin>
+                          <Insets bottom="30.0" right="30.0" top="30.0" />
+                       </HBox.margin>
+                    </Button>
                   <Button fx:id="buttonDown" mnemonicParsing="false" onAction="#buttonDownClick" prefWidth="50.0" text="v" textAlignment="CENTER">
                      <HBox.margin>
                         <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
                      </HBox.margin>
                   </Button>
-                  <Button fx:id="buttonUp" mnemonicParsing="false" onAction="#buttonUpClick" prefWidth="50.0" text="^">
-                     <HBox.margin>
-                        <Insets bottom="30.0" right="30.0" top="30.0" />
-                     </HBox.margin>
-                  </Button>
+                 </VBox>
+
+                  <VBox alignment="TOP_CENTER">
+                     <HBox alignment="CENTER">
+                        <Label>Feature X: </Label>
+                        <ComboBox fx:id="featureX" onAction="#featureXChange" prefHeight="26.0" prefWidth="120.0" promptText="Auswahl"><HBox.margin>
+                           <Insets bottom="15.0" left="10.0" top="30.0" />
+                        </HBox.margin>
+                        </ComboBox>
+                     </HBox>
+
+                     <HBox alignment="CENTER">
+                        <Label>Feature Y: </Label>
+                        <ComboBox fx:id="featureY" onAction="#featureYChange" prefHeight="26.0" prefWidth="120.0" promptText="Auswahl"><HBox.margin>
+                           <Insets bottom="15.0" left="10.0" top="30.0"  />
+                        </HBox.margin>
+                        </ComboBox>
+                     </HBox>
+                  </VBox>
+
+                  <CheckBox fx:id="compareAll" onAction="#compareDataset">Alle vergleichen</CheckBox>
                </children>
             </HBox>
             <TableView fx:id="tableChoosenData" layoutX="20.0" layoutY="20.0" prefHeight="250.0" prefWidth="500.0">
